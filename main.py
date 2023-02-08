@@ -20,10 +20,14 @@ GRAVITY = 0.75
 moving_left = False
 moving_right = False
 shoot = False
+grenade = False
+grenade_thrown = False
 
 # load images
 # bullet
 bullet_image = pygame.image.load("Images/Icons/bullet.png").convert_alpha()
+# grenade
+grenade_image = pygame.image.load("Images/Icons/grenade.png").convert_alpha()
 
 # define colors
 BG = (144, 201, 120)
@@ -36,7 +40,7 @@ def draw_background():
 
 
 class Solder(pygame.sprite.Sprite):
-    def __init__(self, character_type, x, y, scale, speed, ammo):
+    def __init__(self, character_type, x, y, scale, speed, ammo, grenades):
         pygame.sprite.Sprite.__init__(self)
         self.alive = True
         self.character_type = character_type
@@ -44,6 +48,7 @@ class Solder(pygame.sprite.Sprite):
         self.ammo = ammo
         self.start_ammo = ammo
         self.shoot_cooldown = 0
+        self.grenades = grenades
         self.health = 100
         self.max_health = self.health
         self.direction = 1
@@ -191,11 +196,43 @@ class Bullet(pygame.sprite.Sprite):
                 self.kill()
 
 
+class Grenade(pygame.sprite.Sprite):
+    def __init__(self, x, y, direction):
+        pygame.sprite.Sprite.__init__(self)
+        self.timer = 100
+        self.velocity_y = -11
+        self.speed = 7
+        self.image = grenade_image
+        self.rect = self.image.get_rect()
+        self.rect.center = x, y
+        self.direction = direction
+
+    def update(self):
+        self.velocity_y += GRAVITY
+        dx = self.direction * self.speed
+        dy = self.velocity_y
+
+        # check collision with floor
+        if self.rect.bottom + dy > 300:  # 300 number from line in background
+            dy = 300 - self.rect.bottom
+            self.speed = 0
+
+        # check collision with walls
+        if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
+            self.direction *= -1
+            dx = self.direction * self.speed
+
+        # update grenade position
+        self.rect.x += dx
+        self.rect.y += dy
+
+
 # create sprite groups
 bullet_group = pygame.sprite.Group()
+grenade_group = pygame.sprite.Group()
 
-player = Solder('Player', 200, 200, 3, 5, 5)  # 20 bullets for ammo
-enemy = Solder('Enemy', 400, 200, 3, 5, 0)
+player = Solder('Player', 200, 200, 3, 5, 5, 5)  # 20 bullets for ammo
+enemy = Solder('Enemy', 400, 200, 3, 5, 20, 0)
 
 run = True
 while run:
@@ -209,13 +246,25 @@ while run:
 
     # update and draw groups
     bullet_group.update()
+    grenade_group.update()
     bullet_group.draw(screen)
-
+    grenade_group.draw(screen)
     # update player actions
     if player.alive:
         # shoot bullets
         if shoot:
             player.shoot()
+        # throw grenades
+        elif grenade and grenade_thrown == False  and player.grenades > 0:
+            grenade = Grenade(player.rect.centerx + (player.rect.size[0] * 0.5 * player.direction),
+                              player.rect.top, player.direction)
+            grenade_group.add(grenade)
+            # reduce grenades
+            player.grenades -= 1
+            grenade_thrown = True
+            #print(player.grenades)
+
+
         if player.in_air:
             player.update_action(2)  # 2 is for jump
         elif moving_left or moving_right:
@@ -236,6 +285,8 @@ while run:
                 moving_right = True
             if event.key == pygame.K_SPACE:
                 shoot = True
+            if event.key == pygame.K_q:
+                grenade = True
             if event.key == pygame.K_w and player.alive:
                 player.jump = True
             if event.key == pygame.K_ESCAPE:
@@ -249,6 +300,9 @@ while run:
                 moving_right = False
             if event.key == pygame.K_SPACE:
                 shoot = False
+            if event.key == pygame.K_q:
+                grenade = False
+                grenade_thrown = False
 
     pygame.display.update()
 pygame.quit()
