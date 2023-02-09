@@ -42,6 +42,8 @@ item_boxes = {
 BG = (144, 201, 120)
 RED = (255, 0, 0)
 WHITE = (255, 255, 255)
+GREEN = (0, 255, 0)
+BLACK = (0, 0, 0)
 
 
 def draw_background():
@@ -213,6 +215,23 @@ class ItemBox(pygame.sprite.Sprite):
             self.kill()
 
 
+class HealthBar():
+    def __init__(self, x, y, health, max_health):
+        self.x = x
+        self.y = y
+        self.health = health
+        self.max_health = max_health
+
+    def draw(self, health):
+        # update with new health
+        self.health = health
+        # calculate health ratio
+        ratio = self.health / self.max_health
+        pygame.draw.rect(screen, BLACK, (self.x - 2, self.y - 2, 154, 24))
+        pygame.draw.rect(screen, RED, (self.x, self.y, 150, 20))
+        pygame.draw.rect(screen, GREEN, (self.x, self.y, 150 * ratio, 20))
+
+
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
         pygame.sprite.Sprite.__init__(self)
@@ -334,6 +353,8 @@ item_box = ItemBox("Grenade", 500, 260)
 item_box_group.add(item_box)
 
 player = Solder('Player', 200, 200, 3, 5, 5, 5)  # 20 bullets for ammo
+health_bar = HealthBar(10, 10, player.health, player.health)
+
 enemy = Solder('Enemy', 400, 200, 3, 5, 20, 0)
 enemy2 = Solder('Enemy', 300, 300, 3, 5, 20, 0)
 enemy_group.add(enemy)
@@ -343,6 +364,8 @@ run = True
 while run:
     clock.tick(FPS)
     draw_background()
+    # show player health
+    health_bar.draw(player.health)
 
     # show ammo
     draw_text("AMMO:", font, WHITE, 10, 35)
