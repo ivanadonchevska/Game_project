@@ -41,11 +41,21 @@ item_boxes = {
 # define colors
 BG = (144, 201, 120)
 RED = (255, 0, 0)
+WHITE = (255, 255, 255)
 
 
 def draw_background():
     screen.fill(BG)
     pygame.draw.line(screen, RED, (0, 300), (SCREEN_WIDTH, 300))
+
+
+# define font
+font = pygame.font.SysFont("Futura", 30)
+
+
+def draw_text(text, font, text_color, x, y):
+    image = font.render(text, True, text_color)
+    screen.blit(image, (x, y))
 
 
 class Solder(pygame.sprite.Sprite):
@@ -334,6 +344,14 @@ while run:
     clock.tick(FPS)
     draw_background()
 
+    # show ammo
+    draw_text("AMMO:", font, WHITE, 10, 35)
+    for _ in range(player.ammo):
+        screen.blit(bullet_image, (90 + (_ * 10), 40))
+    # show grenades
+    draw_text("GRENADES:", font, WHITE, 10, 60)
+    for _ in range(player.grenades):
+        screen.blit(grenade_image, (135 + (_ * 15), 60))
     player.update()
     player.draw()
 
@@ -364,8 +382,7 @@ while run:
             # reduce grenades
             player.grenades -= 1
             grenade_thrown = True
-            #print(player.grenades)
-
+            # print(player.grenades)
 
         if player.in_air:
             player.update_action(2)  # 2 is for jump
