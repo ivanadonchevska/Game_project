@@ -62,7 +62,7 @@ BLACK = (0, 0, 0)
 
 def draw_background():
     screen.fill(BG)
-    pygame.draw.line(screen, RED, (0, 300), (SCREEN_WIDTH, 300))
+    # pygame.draw.line(screen, RED, (0, 300), (SCREEN_WIDTH, 300))
 
 
 # define font
@@ -118,6 +118,8 @@ class Solder(pygame.sprite.Sprite):
         self.image = self.animation_list[self.action][self.frame_index]
         self.rect = self.image.get_rect()
         self.rect.center = x, y
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
 
     def update(self):
         self.update_animation()
@@ -153,10 +155,23 @@ class Solder(pygame.sprite.Sprite):
             self.velocity_y = 10
         dy += self.velocity_y
 
-        # check collision with floor
-        if self.rect.bottom + dy > 300:  # 300 number from line in background
-            dy = 300 - self.rect.bottom
-            self.in_air = False
+        # check for collision
+        for tile in world.obstacle_list:
+            # check collision in x direction
+            if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                dx = 0
+            # check for the coliision in y direction
+            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                # check if below the ground i.e. jumping
+                if self.velocity_y < 0:  # player is moving up the way
+                    self.velocity_y = 0
+                    dy = tile[1].bottom - self.rect.top
+                # check if above the ground i.e. falling
+                elif self.velocity_y >= 0:
+                    self.velocity_y = 0
+                    self.in_air = False
+                    dy = tile[1].top - self.rect.bottom
+
         # update rectangle position
         self.rect.x += dx
         self.rect.y += dy
@@ -375,12 +390,17 @@ class Bullet(pygame.sprite.Sprite):
         # check if the bullet has gone off the screen
         if self.rect.right < 0 or self.rect.left > SCREEN_WIDTH:
             self.kill()
+        # check for collision with level
+        for tile in world.obstacle_list:
+            if tile[1].colliderect(self.rect):
+                self.kill()  # make ammo disappear when collide with tile
 
         # check collision with characters
         if pygame.sprite.spritecollide(player, bullet_group, False):
             if player.alive:
                 player.health -= 5  # change this numbers later
                 self.kill()
+
         for enemy in enemy_group:
             if pygame.sprite.spritecollide(enemy, bullet_group, False):
                 if enemy.alive:
@@ -398,6 +418,8 @@ class Grenade(pygame.sprite.Sprite):
         self.image = grenade_image
         self.rect = self.image.get_rect()
         self.rect.center = x, y
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
         self.direction = direction
 
     def update(self):
@@ -405,15 +427,23 @@ class Grenade(pygame.sprite.Sprite):
         dx = self.direction * self.speed
         dy = self.velocity_y
 
-        # check collision with floor
-        if self.rect.bottom + dy > 300:  # 300 number from line in background
-            dy = 300 - self.rect.bottom
-            self.speed = 0
-
-        # check collision with walls
-        if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
-            self.direction *= -1
-            dx = self.direction * self.speed
+        # check for collision with level
+        for tile in world.obstacle_list:
+            # check collision with walls
+            if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                self.direction *= -1
+                dx = self.direction * self.speed
+                # check for the coliision in y direction
+            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                self.speed = 0  # if not added this grenade keeps sliding
+                # check if below the ground i.e. thrown up
+                if self.velocity_y < 0:
+                    self.velocity_y = 0
+                    dy = tile[1].bottom - self.rect.top
+                # check if above the ground i.e. falling
+                elif self.velocity_y >= 0:
+                    self.velocity_y = 0
+                    dy = tile[1].top - self.rect.bottom
 
         # update grenade position
         self.rect.x += dx
@@ -426,7 +456,7 @@ class Grenade(pygame.sprite.Sprite):
             explosion = Explosion(self.rect.x, self.rect.y, 0.5)
             explosion_group.add(explosion)
             # do damage to anyone that is nearby
-            if abs(self.rect.centerx - player.rect.centerx) <  TILE_SIZE * 2 and \
+            if abs(self.rect.centerx - player.rect.centerx) < TILE_SIZE * 2 and \
                     abs(self.rect.centery - player.rect.centery) < TILE_SIZE * 2:
                 player.health -= 50  # figure it out later for different nearby positions
             for enemy in enemy_group:
@@ -474,7 +504,6 @@ decoration_group = pygame.sprite.Group()
 water_group = pygame.sprite.Group()
 exit_group = pygame.sprite.Group()
 
-
 # create empty tile list
 world_data = []
 for row in range(ROWS):
@@ -490,7 +519,6 @@ with open(f"level{level}_data.csv", newline="") as csvfile:
 # print(world_data)
 world = World()
 player, health_bar = world.process_data(world_data)
-
 
 run = True
 while run:
@@ -535,14 +563,14 @@ while run:
     decoration_group.draw(screen)
     water_group.draw(screen)
     exit_group.draw(screen)
-    
+
     # update player actions
     if player.alive:
         # shoot bullets
         if shoot:
             player.shoot()
         # throw grenades
-        elif grenade and grenade_thrown == False  and player.grenades > 0:
+        elif grenade and grenade_thrown == False and player.grenades > 0:
             grenade = Grenade(player.rect.centerx + (player.rect.size[0] * 0.5 * player.direction),
                               player.rect.top, player.direction)
             grenade_group.add(grenade)
