@@ -1,5 +1,7 @@
 import pygame
 import os
+import random
+import csv
 
 pygame.init()
 
@@ -15,7 +17,13 @@ FPS = 60  # frames per second
 
 # define game variables
 GRAVITY = 0.75
-TILE_SIZE = 40  # pixsel
+# TILE_SIZE = 40  # pixsel
+ROWS = 16
+COLS = 150
+TILE_SIZE = SCREEN_HEIGHT // ROWS
+TILE_TYPES = 21
+
+level = 1
 
 # define player action variables
 moving_left = False
@@ -25,6 +33,12 @@ grenade = False
 grenade_thrown = False
 
 # load images
+# store tiles in a list
+images_list = []
+for x in range(TILE_TYPES):
+    image = pygame.image.load(f"Images/Tile/{x}.png")
+    image = pygame.transform.scale(image, (TILE_SIZE, TILE_SIZE))
+    images_list.append(image)
 # bullet
 bullet_image = pygame.image.load("Images/Icons/bullet.png").convert_alpha()
 # grenade
@@ -81,6 +95,12 @@ class Solder(pygame.sprite.Sprite):
         self.frame_index = 0
         self.action = 0
         self.update_time = pygame.time.get_ticks()
+
+        # ai specific variables
+        self.move_counter = 0
+        self.vision = pygame.Rect(0, 0, 150, 20)  # x, y, width, height
+        self.idling = False
+        self.idling_counter = 0
 
         # load all images for the players
         animation_types = ["Idle", "Run", "Jump", "Death"]
@@ -144,12 +164,46 @@ class Solder(pygame.sprite.Sprite):
     def shoot(self):
         if self.shoot_cooldown == 0 and self.ammo > 0:  # if i have at least one bullet that i can shoot with
             self.shoot_cooldown = 20
-            bullet = Bullet(self.rect.centerx + (self.rect.size[0] * 0.6 * self.direction),
+            bullet = Bullet(self.rect.centerx + (self.rect.size[0] * 0.75 * self.direction),
                             self.rect.centery, self.direction)
             bullet_group.add(bullet)
             # reduce ammo
             # write on the screen how many bullets are left latter
             self.ammo -= 1
+
+    def ai(self):
+        if self.alive and player.alive:
+            if self.idling == False and random.randint(1, 200) == 1:
+                self.update_action(0)
+                self.idling = True
+                self.idling_counter = 50
+            # check if the ai is near the player
+            if self.vision.colliderect(player.rect):
+                # stop running and face the player
+                self.update_action(0)
+                # shoot
+                self.shoot()
+            else:
+                if self.idling == False:
+                    if self.direction == 1:  # right side
+                        ai_moving_right = True
+                    else:
+                        ai_moving_right = False
+                    ai_moving_left = not ai_moving_right
+                    self.move(ai_moving_left, ai_moving_right)
+                    self.update_action(1)  # 1 is for run
+                    self.move_counter += 1
+                    # update ai vision as the enemy moves
+                    self.vision.center = (self.rect.centerx + 75 * self.direction, self.rect.centery)
+                    pygame.draw.rect(screen, RED, self.vision)
+
+                    if self.move_counter > TILE_SIZE:
+                        self.direction *= -1
+                        self.move_counter *= -1
+                else:
+                    self.idling_counter -= 1
+                    if self.idling_counter <= 0:
+                        self.idling = False
 
     def update_animation(self):
         # update animation
@@ -187,6 +241,79 @@ class Solder(pygame.sprite.Sprite):
         # flip is to change the direction
         screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
         # pygame.draw.rect(screen, RED, self.rect, 1)  # to draw rectangles
+
+
+class World:
+    def __init__(self):
+        self.obstacle_list = []
+
+    def process_data(self, data):
+        # iterate through each value in level data file
+        #  global player
+        for y, row in enumerate(data):
+            for x, tile in enumerate(row):
+                if tile >= 0:
+                    image = images_list[tile]
+                    image_rect = image.get_rect()
+                    image_rect.x = x * TILE_SIZE
+                    image_rect.y = y * TILE_SIZE
+                    tile_data = (image, image_rect)
+                    if 0 <= tile <= 8:
+                        self.obstacle_list.append(tile_data)
+                    elif 9 <= tile <= 10:
+                        water = Decoration(image, x * TILE_SIZE, y * TILE_SIZE)
+                        water_group.add(water)
+                    elif 11 <= tile <= 14:
+                        decoration = Decoration(image, x * TILE_SIZE, y * TILE_SIZE)
+                        decoration_group.add(decoration)
+                    elif tile == 15:  # create player
+                        player = Solder('Player', x * TILE_SIZE, y * TILE_SIZE, 1.65, 5, 5, 5)  # 20 bullets for ammo
+                        health_bar = HealthBar(10, 10, player.health, player.health)
+                    elif tile == 16:  # create enemies
+                        enemy = Solder('Enemy', x * TILE_SIZE, y * TILE_SIZE, 1.65, 2, 20, 0)
+                        enemy_group.add(enemy)
+                    elif tile == 17:  # create ammo box
+                        item_box = ItemBox("Ammo", x * TILE_SIZE, y * TILE_SIZE)
+                        item_box_group.add(item_box)
+                    elif tile == 18:  # create grenade box
+                        item_box = ItemBox("Grenade", x * TILE_SIZE, y * TILE_SIZE)
+                        item_box_group.add(item_box)
+                    elif tile == 19:  # create health box
+                        item_box = ItemBox("Health", x * TILE_SIZE, y * TILE_SIZE)
+                        item_box_group.add(item_box)
+                    elif tile == 20:  # create exit
+                        exit = Decoration(image, x * TILE_SIZE, y * TILE_SIZE)
+                        exit_group.add(decoration)
+
+        return player, health_bar
+
+    def draw(self):
+        for tile in self.obstacle_list:
+            screen.blit(tile[0], tile[1])
+
+
+class Decoration(pygame.sprite.Sprite):
+    def __init__(self, image, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+
+
+class Water(pygame.sprite.Sprite):
+    def __init__(self, image, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+
+
+class Exit(pygame.sprite.Sprite):
+    def __init__(self, image, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
 
 
 class ItemBox(pygame.sprite.Sprite):
@@ -343,27 +470,35 @@ bullet_group = pygame.sprite.Group()
 grenade_group = pygame.sprite.Group()
 explosion_group = pygame.sprite.Group()
 item_box_group = pygame.sprite.Group()
+decoration_group = pygame.sprite.Group()
+water_group = pygame.sprite.Group()
+exit_group = pygame.sprite.Group()
 
-# temp - create item boxes
-item_box = ItemBox("Health", 100, 260)
-item_box_group.add(item_box)
-item_box = ItemBox("Ammo", 400, 260)
-item_box_group.add(item_box)
-item_box = ItemBox("Grenade", 500, 260)
-item_box_group.add(item_box)
 
-player = Solder('Player', 200, 200, 3, 5, 5, 5)  # 20 bullets for ammo
-health_bar = HealthBar(10, 10, player.health, player.health)
+# create empty tile list
+world_data = []
+for row in range(ROWS):
+    r = [-1] * COLS
+    world_data.append(r)
+# load in level data and create world
+with open(f"level{level}_data.csv", newline="") as csvfile:
+    reader = csv.reader(csvfile, delimiter=",")
+    for x, row in enumerate(reader):
+        for y, tile in enumerate(row):
+            world_data[x][y] = int(tile)
 
-enemy = Solder('Enemy', 400, 200, 3, 5, 20, 0)
-enemy2 = Solder('Enemy', 300, 300, 3, 5, 20, 0)
-enemy_group.add(enemy)
-enemy_group.add(enemy2)
+# print(world_data)
+world = World()
+player, health_bar = world.process_data(world_data)
+
 
 run = True
 while run:
     clock.tick(FPS)
+    # update background
     draw_background()
+    # draw world
+    world.draw()
     # show player health
     health_bar.draw(player.health)
 
@@ -375,10 +510,12 @@ while run:
     draw_text("GRENADES:", font, WHITE, 10, 60)
     for _ in range(player.grenades):
         screen.blit(grenade_image, (135 + (_ * 15), 60))
+
     player.update()
     player.draw()
 
     for enemy in enemy_group:
+        enemy.ai()
         enemy.update()
         enemy.draw()
 
@@ -387,11 +524,18 @@ while run:
     grenade_group.update()
     explosion_group.update()
     item_box_group.update()
+    decoration_group.update()
+    water_group.update()
+    exit_group.update()
 
     bullet_group.draw(screen)
     grenade_group.draw(screen)
     explosion_group.draw(screen)
     item_box_group.draw(screen)
+    decoration_group.draw(screen)
+    water_group.draw(screen)
+    exit_group.draw(screen)
+    
     # update player actions
     if player.alive:
         # shoot bullets
