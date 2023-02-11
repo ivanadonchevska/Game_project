@@ -17,12 +17,15 @@ FPS = 60  # frames per second
 
 # define game variables
 GRAVITY = 0.75
+SCROLL_THRESH = 200  # distance that the player can get to the edge of the screen before it starts to scroll
 # TILE_SIZE = 40  # pixsel
 ROWS = 16
 COLS = 150
 TILE_SIZE = SCREEN_HEIGHT // ROWS
 TILE_TYPES = 21
 
+screen_scroll = 0
+background_scroll = 0
 level = 1
 
 # define player action variables
@@ -32,7 +35,12 @@ shoot = False
 grenade = False
 grenade_thrown = False
 
-# load images
+# load images for the background
+pine1_image = pygame.image.load("Images/Background/pine1.png").convert_alpha()
+pine2_image = pygame.image.load("Images/Background/pine2.png").convert_alpha()
+mountain_image = pygame.image.load("Images/Background/mountain.png").convert_alpha()
+sky_image = pygame.image.load("Images/Background/sky_cloud.png").convert_alpha()
+
 # store tiles in a list
 images_list = []
 for x in range(TILE_TYPES):
@@ -63,6 +71,11 @@ BLACK = (0, 0, 0)
 def draw_background():
     screen.fill(BG)
     # pygame.draw.line(screen, RED, (0, 300), (SCREEN_WIDTH, 300))
+    # to draw images for the background on the screen
+    screen.blit(sky_image, (0, 0))
+    screen.blit(mountain_image, (0, SCREEN_HEIGHT - mountain_image.get_height() - 300))
+    screen.blit(pine1_image, (0, SCREEN_HEIGHT - pine1_image.get_height() - 150))
+    screen.blit(pine2_image, (0, SCREEN_HEIGHT - pine2_image.get_height()))
 
 
 # define font
@@ -130,6 +143,7 @@ class Solder(pygame.sprite.Sprite):
 
     def move(self, moving_left, moving_right):
         # reset movement variables
+        screen_scroll = 0
         dx = 0  # delta x -> the change of x
         dy = 0  # delta y -> the change of y
 
@@ -175,6 +189,14 @@ class Solder(pygame.sprite.Sprite):
         # update rectangle position
         self.rect.x += dx
         self.rect.y += dy
+
+        # update scroll based on player position
+        if self.character_type == "Player":
+            if self.rect.right > SCREEN_WIDTH - SCROLL_THRESH or self.rect.left < SCROLL_THRESH:
+                self.rect.x -= dx
+                screen_scroll = -dx  # scroll in opposite direction from the player
+
+        return screen_scroll
 
     def shoot(self):
         if self.shoot_cooldown == 0 and self.ammo > 0:  # if i have at least one bullet that i can shoot with
@@ -304,6 +326,8 @@ class World:
 
     def draw(self):
         for tile in self.obstacle_list:
+            # x coordinate
+            tile[1][0] += screen_scroll
             screen.blit(tile[0], tile[1])
 
 
@@ -585,7 +609,8 @@ while run:
             player.update_action(1)  # 1 index for run animation
         else:
             player.update_action(0)  # 0 is for idle
-        player.move(moving_left, moving_right)
+        screen_scroll = player.move(moving_left, moving_right)
+        # background_scroll -= screen_scroll
 
     for event in pygame.event.get():
         # quit game
