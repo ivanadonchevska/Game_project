@@ -800,15 +800,15 @@ while run:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_s:
                 start = True
-            if event.key == pygame.K_a:  # A
+            if event.key == pygame.K_LEFT: 
                 moving_left = True
-            if event.key == pygame.K_d:  # D
+            if event.key == pygame.K_RIGHT:
                 moving_right = True
             if event.key == pygame.K_SPACE:
                 shoot = True
-            if event.key == pygame.K_q:
+            if event.key == pygame.K_x:
                 grenade = True
-            if event.key == pygame.K_w and player.alive:
+            if event.key == pygame.K_UP and player.alive:
                 player.jump = True
                 jump_sound.play()
             if event.key == pygame.K_r:
@@ -818,13 +818,13 @@ while run:
 
         # keyboard button released
         if event.type == pygame.KEYUP:
-            if event.key == pygame.K_a:
+            if event.key == pygame.K_LEFT:
                 moving_left = False
-            if event.key == pygame.K_d:
+            if event.key == pygame.K_RIGHT:
                 moving_right = False
             if event.key == pygame.K_SPACE:
                 shoot = False
-            if event.key == pygame.K_q:
+            if event.key == pygame.K_x:
                 grenade = False
                 grenade_thrown = False
             if event.key == pygame.K_r:
