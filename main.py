@@ -41,7 +41,16 @@ grenade = False
 grenade_thrown = False
 
 # load music and sounds
-pygame.mixer.music.load("")
+pygame.mixer.music.load("Audio/music2.mp3")
+pygame.mixer.music.set_volume(0.3)
+pygame.mixer.music.play(-1, 0.0, 5000)
+jump_sound = pygame.mixer.Sound("Audio/jump.wav")
+jump_sound.set_volume(0.5)
+shoot_sound = pygame.mixer.Sound("Audio/shot.wav")
+shoot_sound.set_volume(0.5)
+grenade_sound = pygame.mixer.Sound("Audio/grenade.wav")
+grenade_sound.set_volume(0.5)
+
 
 # button images
 start_image = pygame.image.load("Images/start_btn.png").convert_alpha()
@@ -264,6 +273,7 @@ class Solder(pygame.sprite.Sprite):
             # reduce ammo
             # write on the screen how many bullets are left latter
             self.ammo -= 1
+            shoot_sound.play()
 
     def ai(self):
         if self.alive and player.alive:
@@ -549,6 +559,7 @@ class Grenade(pygame.sprite.Sprite):
         self.timer -= 1
         if self.timer <= 0:
             self.kill()
+            grenade_sound.play()
             explosion = Explosion(self.rect.x, self.rect.y, 0.5)
             explosion_group.add(explosion)
             # do damage to anyone that is nearby
@@ -747,6 +758,7 @@ while run:
                 grenade = True
             if event.key == pygame.K_w and player.alive:
                 player.jump = True
+                jump_sound.play()
             if event.key == pygame.K_ESCAPE:
                 run = False
 
