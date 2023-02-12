@@ -1,9 +1,11 @@
 import pygame
+from pygame import mixer
 import os
 import random
 import csv
 import button
 
+mixer.init()
 pygame.init()
 
 SCREEN_WIDTH = 800
@@ -37,6 +39,9 @@ moving_right = False
 shoot = False
 grenade = False
 grenade_thrown = False
+
+# load music and sounds
+pygame.mixer.music.load("")
 
 # button images
 start_image = pygame.image.load("Images/start_btn.png").convert_alpha()
