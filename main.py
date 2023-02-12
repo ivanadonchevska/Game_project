@@ -32,6 +32,10 @@ screen_scroll = 0
 background_scroll = 0
 level = 1
 start_game = False
+start_intro = False
+
+restart = False
+start = False
 
 # define player action variables
 moving_left = False
@@ -41,9 +45,9 @@ grenade = False
 grenade_thrown = False
 
 # load music and sounds
-pygame.mixer.music.load("Audio/music2.mp3")
-pygame.mixer.music.set_volume(0.3)
-pygame.mixer.music.play(-1, 0.0, 5000)
+# pygame.mixer.music.load("Audio/music2.mp3")
+# pygame.mixer.music.set_volume(0.3)
+# pygame.mixer.music.play(-1, 0.0, 5000)
 jump_sound = pygame.mixer.Sound("Audio/jump.wav")
 jump_sound.set_volume(0.5)
 shoot_sound = pygame.mixer.Sound("Audio/shot.wav")
@@ -53,9 +57,10 @@ grenade_sound.set_volume(0.5)
 
 
 # button images
-start_image = pygame.image.load("Images/start_btn.png").convert_alpha()
-exit_image = pygame.image.load("Images/exit_btn.png").convert_alpha()
-restart_image = pygame.image.load("Images/restart_btn.png").convert_alpha()
+# start_image = pygame.image.load("Images/start_btn.png").convert_alpha()
+# exit_image = pygame.image.load("Images/exit_btn.png").convert_alpha()
+start_image = pygame.image.load("Images/start_menu.jfif").convert_alpha()
+restart_image = pygame.image.load("Images/restart.jpg").convert_alpha()
 
 # load images for the background
 pine1_image = pygame.image.load("Images/Background/pine1.png").convert_alpha()
@@ -88,6 +93,7 @@ RED = (255, 0, 0)
 WHITE = (255, 255, 255)
 GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
+PINK = (235, 65, 54)
 
 
 def draw_background():
@@ -131,6 +137,7 @@ def reset_level():
         data.append(r)
 
     return data
+
 
 class Solder(pygame.sprite.Sprite):
     def __init__(self, character_type, x, y, scale, speed, ammo, grenades):
@@ -223,7 +230,7 @@ class Solder(pygame.sprite.Sprite):
                 if self.character_type == "Enemy":
                     self.direction *= -1
                     self.move_counter = 0
-            # check for the coliision in y direction
+            # check for the collision in y direction
             if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
                 # check if below the ground i.e. jumping
                 if self.velocity_y < 0:  # player is moving up the way
@@ -299,7 +306,7 @@ class Solder(pygame.sprite.Sprite):
                     self.move_counter += 1
                     # update ai vision as the enemy moves
                     self.vision.center = (self.rect.centerx + 75 * self.direction, self.rect.centery)
-                    pygame.draw.rect(screen, RED, self.vision)
+                    # pygame.draw.rect(screen, RED, self.vision)
 
                     if self.move_counter > TILE_SIZE:
                         self.direction *= -1
@@ -463,7 +470,7 @@ class ItemBox(pygame.sprite.Sprite):
             self.kill()
 
 
-class HealthBar():
+class HealthBar:
     def __init__(self, x, y, health, max_health):
         self.x = x
         self.y = y
@@ -603,10 +610,39 @@ class Explosion(pygame.sprite.Sprite):
                 self.image = self.images[self.frame_index]
 
 
+class ScreenFade:
+    def __init__(self, direction, color, speed):
+        self.direction = direction
+        self.color = color
+        self.speed = speed
+        self.fade_counter = 0
+
+    def fade(self):
+        fade_complete = False
+        self.fade_counter += self.speed
+        if self.direction == 1:  # whole screen fade
+            # when press start button
+            pygame.draw.rect(screen, self.color, (0 - self.fade_counter, 0, SCREEN_WIDTH // 2, SCREEN_HEIGHT))
+            pygame.draw.rect(screen, self.color, (SCREEN_WIDTH // 2 + self.fade_counter, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
+            pygame.draw.rect(screen, self.color, (0, 0 - self.fade_counter, SCREEN_WIDTH, SCREEN_HEIGHT // 2))
+            pygame.draw.rect(screen, self.color, (0, SCREEN_HEIGHT // 2 + self.fade_counter, SCREEN_WIDTH, SCREEN_HEIGHT))
+        if self.direction == 2:  # vertical screen fade down
+            pygame.draw.rect(screen, self.color, (0, 0, SCREEN_WIDTH, 0 + self.fade_counter))
+        if self.fade_counter >= SCREEN_WIDTH:
+            fade_complete = True
+
+        return fade_complete
+
+
+# create screen fades
+intro_fade = ScreenFade(1, BLACK, 4)
+death_fade = ScreenFade(2, BLACK, 4)
+
 # create buttons
-start_button = button.Button(SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT // 2 - 150, start_image, 1)
-exit_button = button.Button(SCREEN_WIDTH // 2 - 110, SCREEN_HEIGHT // 2 + 50, exit_image, 1)
-restart_button = button.Button(SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 50, restart_image, 2)
+start_button = button.Button(SCREEN_WIDTH // 2 - 570, SCREEN_HEIGHT // 2 - 320, start_image, 1.15)
+# exit_button = button.Button(SCREEN_WIDTH // 2 - 110, SCREEN_HEIGHT // 2 + 50, exit_image, 1)
+restart_button = button.Button(SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2 - 200, restart_image, 1)
+
 # create sprite groups
 enemy_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
@@ -637,15 +673,18 @@ run = True
 while run:
     clock.tick(FPS)
     # fix start buttons later
-    start_game = True
+    # start_game = True
     if not start_game:
         # draw menu
         screen.fill(BG)
         # add buttons
-        if start_button.draw(screen):
+        # if start_button.draw(screen):
+        start_button.draw(screen)
+        if start:
             start_game = True
-        if exit_button.draw(screen):
-            run = False
+            start_intro = True
+        # if exit_button.draw(screen):
+        # run = False
 
     else:
         # update background
@@ -689,6 +728,12 @@ while run:
         water_group.draw(screen)
         exit_group.draw(screen)
 
+        # show intro
+        if start_intro:
+            if intro_fade.fade():
+                start_intro = False
+                intro_fade.fade_counter = 0
+
         # update player actions
         if player.alive:
             # shoot bullets
@@ -715,6 +760,7 @@ while run:
             background_scroll -= screen_scroll  # to scroll background too
             # check if player has completed the level
             if level_complete:
+                start_intro = True
                 level += 1
                 background_scroll = 0
                 world_data = reset_level()
@@ -730,17 +776,21 @@ while run:
 
         else:
             screen_scroll = 0
-            if restart_button.draw(screen):
-                background_scroll = 0
-                world_data = reset_level()
-                # load in level data and create world
-                with open(f"level{level}_data.csv", newline="") as csvfile:
-                    reader = csv.reader(csvfile, delimiter=",")
-                    for x, row in enumerate(reader):
-                        for y, tile in enumerate(row):
-                            world_data[x][y] = int(tile)
-                world = World()
-                player, health_bar = world.process_data(world_data)
+            if death_fade.fade():
+                restart_button.draw(screen)
+                if restart:
+                    death_fade.fade_counter = 0
+                    start_intro = True
+                    background_scroll = 0
+                    world_data = reset_level()
+                    # load in level data and create world
+                    with open(f"level{level}_data.csv", newline="") as csvfile:
+                        reader = csv.reader(csvfile, delimiter=",")
+                        for x, row in enumerate(reader):
+                            for y, tile in enumerate(row):
+                                world_data[x][y] = int(tile)
+                    world = World()
+                    player, health_bar = world.process_data(world_data)
 
     for event in pygame.event.get():
         # quit game
@@ -748,6 +798,8 @@ while run:
             run = False
         # keyboard presses
         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_s:
+                start = True
             if event.key == pygame.K_a:  # A
                 moving_left = True
             if event.key == pygame.K_d:  # D
@@ -759,6 +811,8 @@ while run:
             if event.key == pygame.K_w and player.alive:
                 player.jump = True
                 jump_sound.play()
+            if event.key == pygame.K_r:
+                restart = True
             if event.key == pygame.K_ESCAPE:
                 run = False
 
@@ -773,6 +827,8 @@ while run:
             if event.key == pygame.K_q:
                 grenade = False
                 grenade_thrown = False
+            if event.key == pygame.K_r:
+                restart = False
 
     pygame.display.update()
 pygame.quit()
