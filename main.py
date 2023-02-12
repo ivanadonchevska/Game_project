@@ -2,6 +2,7 @@ import pygame
 import os
 import random
 import csv
+import button
 
 pygame.init()
 
@@ -23,6 +24,7 @@ ROWS = 16
 COLS = 150
 TILE_SIZE = SCREEN_HEIGHT // ROWS
 TILE_TYPES = 21
+MAX_LEVELS = 3
 
 screen_scroll = 0
 background_scroll = 0
@@ -39,6 +41,7 @@ grenade_thrown = False
 # button images
 start_image = pygame.image.load("Images/start_btn.png").convert_alpha()
 exit_image = pygame.image.load("Images/exit_btn.png").convert_alpha()
+restart_image = pygame.image.load("Images/restart_btn.png").convert_alpha()
 
 # load images for the background
 pine1_image = pygame.image.load("Images/Background/pine1.png").convert_alpha()
@@ -95,6 +98,25 @@ def draw_text(text, font, text_color, x, y):
     image = font.render(text, True, text_color)
     screen.blit(image, (x, y))
 
+
+# function to reset level
+def reset_level():
+    enemy_group.empty()
+    bullet_group.empty()
+    grenade_group.empty()
+    explosion_group.empty()
+    item_box_group.empty()
+    decoration_group.empty()
+    water_group.empty()
+    exit_group.empty()
+
+    # create empty tile list
+    data = []
+    for row in range(ROWS):
+        r = [-1] * COLS
+        data.append(r)
+
+    return data
 
 class Solder(pygame.sprite.Sprite):
     def __init__(self, character_type, x, y, scale, speed, ammo, grenades):
@@ -199,6 +221,18 @@ class Solder(pygame.sprite.Sprite):
                     self.in_air = False
                     dy = tile[1].top - self.rect.bottom
 
+        # check for collision with water
+        if pygame.sprite.spritecollide(self, water_group, False):
+            self.health = 0
+        # check for collision with exit
+        level_complete = False
+        if pygame.sprite.spritecollide(self, exit_group, False):
+            level_complete = True
+
+        # check if fallen off the map
+        if self.rect.bottom > SCREEN_HEIGHT:
+            self.health = 0
+
         # check if going off the edges of the screen
         if self.character_type == "Player":
             if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
@@ -214,7 +248,7 @@ class Solder(pygame.sprite.Sprite):
                 self.rect.x -= dx
                 screen_scroll = -dx  # scroll in opposite direction from the player
 
-        return screen_scroll
+        return screen_scroll, level_complete
 
     def shoot(self):
         if self.shoot_cooldown == 0 and self.ammo > 0:  # if i have at least one bullet that i can shoot with
@@ -554,7 +588,9 @@ class Explosion(pygame.sprite.Sprite):
 
 
 # create buttons
-# start_button =
+start_button = button.Button(SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT // 2 - 150, start_image, 1)
+exit_button = button.Button(SCREEN_WIDTH // 2 - 110, SCREEN_HEIGHT // 2 + 50, exit_image, 1)
+restart_button = button.Button(SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 50, restart_image, 2)
 # create sprite groups
 enemy_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
@@ -584,10 +620,16 @@ player, health_bar = world.process_data(world_data)
 run = True
 while run:
     clock.tick(FPS)
-
+    # fix start buttons later
+    start_game = True
     if not start_game:
         # draw menu
         screen.fill(BG)
+        # add buttons
+        if start_button.draw(screen):
+            start_game = True
+        if exit_button.draw(screen):
+            run = False
 
     else:
         # update background
@@ -652,8 +694,37 @@ while run:
                 player.update_action(1)  # 1 index for run animation
             else:
                 player.update_action(0)  # 0 is for idle
-            screen_scroll = player.move(moving_left, moving_right)
+            screen_scroll, level_complete = player.move(moving_left, moving_right)
+            # print(level_complete)
             background_scroll -= screen_scroll  # to scroll background too
+            # check if player has completed the level
+            if level_complete:
+                level += 1
+                background_scroll = 0
+                world_data = reset_level()
+                if level <= MAX_LEVELS:
+                    # load in level data and create world
+                    with open(f"level{level}_data.csv", newline="") as csvfile:
+                        reader = csv.reader(csvfile, delimiter=",")
+                        for x, row in enumerate(reader):
+                            for y, tile in enumerate(row):
+                                world_data[x][y] = int(tile)
+                    world = World()
+                    player, health_bar = world.process_data(world_data)
+
+        else:
+            screen_scroll = 0
+            if restart_button.draw(screen):
+                background_scroll = 0
+                world_data = reset_level()
+                # load in level data and create world
+                with open(f"level{level}_data.csv", newline="") as csvfile:
+                    reader = csv.reader(csvfile, delimiter=",")
+                    for x, row in enumerate(reader):
+                        for y, tile in enumerate(row):
+                            world_data[x][y] = int(tile)
+                world = World()
+                player, health_bar = world.process_data(world_data)
 
     for event in pygame.event.get():
         # quit game
