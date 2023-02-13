@@ -3,7 +3,7 @@ from pygame import mixer
 import os
 import random
 import csv
-import button
+# import button
 
 mixer.init()
 pygame.init()
@@ -59,7 +59,7 @@ grenade_sound.set_volume(0.5)
 # button images
 # start_image = pygame.image.load("Images/start_btn.png").convert_alpha()
 # exit_image = pygame.image.load("Images/exit_btn.png").convert_alpha()
-start_image = pygame.image.load("Images/start_menu.jfif").convert_alpha()
+start_image = pygame.image.load("Images/start_menu.JPG").convert_alpha()
 restart_image = pygame.image.load("Images/restart.jpg").convert_alpha()
 
 # load images for the background
@@ -67,6 +67,7 @@ pine1_image = pygame.image.load("Images/Background/pine1.png").convert_alpha()
 pine2_image = pygame.image.load("Images/Background/pine2.png").convert_alpha()
 mountain_image = pygame.image.load("Images/Background/mountain.png").convert_alpha()
 sky_image = pygame.image.load("Images/Background/sky_cloud.png").convert_alpha()
+level2_image = pygame.image.load("Images/Background/level2_background.png").convert_alpha()
 
 # store tiles in a list
 images_list = []
@@ -102,12 +103,16 @@ def draw_background():
     # to draw images for the background on the screen
     width = sky_image.get_width()
     for x in range(5):
-        screen.blit(sky_image, ((x * width) - background_scroll * 0.5, 0))
-        screen.blit(mountain_image,
-                    ((x * width) - background_scroll * 0.6, SCREEN_HEIGHT - mountain_image.get_height() - 300))
-        screen.blit(pine1_image,
-                    ((x * width) - background_scroll * 0.7, SCREEN_HEIGHT - pine1_image.get_height() - 150))
-        screen.blit(pine2_image, ((x * width) - background_scroll * 0.8, SCREEN_HEIGHT - pine2_image.get_height()))
+        if level == 2:
+            width = level2_image.get_width()
+            screen.blit(level2_image, ((x * width) - background_scroll * 0.5, 0))
+        else:
+            screen.blit(sky_image, ((x * width) - background_scroll * 0.5, 0))
+            screen.blit(mountain_image,
+                        ((x * width) - background_scroll * 0.6, SCREEN_HEIGHT - mountain_image.get_height() - 300))
+            screen.blit(pine1_image,
+                        ((x * width) - background_scroll * 0.7, SCREEN_HEIGHT - pine1_image.get_height() - 150))
+            screen.blit(pine2_image, ((x * width) - background_scroll * 0.8, SCREEN_HEIGHT - pine2_image.get_height()))
 
 
 # define font
@@ -137,6 +142,22 @@ def reset_level():
         data.append(r)
 
     return data
+
+
+class StartMenu:
+    def __init__(self, x, y, image, scale):
+        width = image.get_width()
+        height = image.get_height()
+        self.image = pygame.transform.scale(image, (int(width * scale), int(height * scale)))
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x, y)
+
+    def draw(self, surface):
+        action = False
+        # draw button
+        surface.blit(self.image, (self.rect.x, self.rect.y))
+
+        return
 
 
 class Solder(pygame.sprite.Sprite):
@@ -398,7 +419,7 @@ class World:
                         item_box_group.add(item_box)
                     elif tile == 20:  # create exit
                         exit = Decoration(image, x * TILE_SIZE, y * TILE_SIZE)
-                        exit_group.add(decoration)
+                        exit_group.add(exit)
 
         return player, health_bar
 
@@ -639,9 +660,9 @@ intro_fade = ScreenFade(1, BLACK, 4)
 death_fade = ScreenFade(2, BLACK, 4)
 
 # create buttons
-start_button = button.Button(SCREEN_WIDTH // 2 - 570, SCREEN_HEIGHT // 2 - 320, start_image, 1.15)
+start_button = StartMenu(SCREEN_WIDTH // 2 - 575, SCREEN_HEIGHT // 2 - 319, start_image, 1.06)
 # exit_button = button.Button(SCREEN_WIDTH // 2 - 110, SCREEN_HEIGHT // 2 + 50, exit_image, 1)
-restart_button = button.Button(SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2 - 200, restart_image, 1)
+restart_button = StartMenu(SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2 - 200, restart_image, 1)
 
 # create sprite groups
 enemy_group = pygame.sprite.Group()
@@ -800,7 +821,7 @@ while run:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_s:
                 start = True
-            if event.key == pygame.K_LEFT: 
+            if event.key == pygame.K_LEFT:
                 moving_left = True
             if event.key == pygame.K_RIGHT:
                 moving_right = True
