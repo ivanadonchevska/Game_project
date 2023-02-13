@@ -61,6 +61,7 @@ grenade_sound.set_volume(0.5)
 # exit_image = pygame.image.load("Images/exit_btn.png").convert_alpha()
 start_image = pygame.image.load("Images/start_menu.JPG").convert_alpha()
 restart_image = pygame.image.load("Images/restart.jpg").convert_alpha()
+win_image = pygame.image.load("Images/win.jpg").convert_alpha()
 
 # load images for the background
 pine1_image = pygame.image.load("Images/Background/pine1.png").convert_alpha()
@@ -271,6 +272,11 @@ class Solder(pygame.sprite.Sprite):
         if pygame.sprite.spritecollide(self, exit_group, False):
             level_complete = True
 
+        # check for collision with win
+        finished_game = False
+        if pygame.sprite.spritecollide(self, finish_group, False):
+            finished_game = True
+
         # check if fallen off the map
         if self.rect.bottom > SCREEN_HEIGHT:
             self.health = 0
@@ -290,7 +296,7 @@ class Solder(pygame.sprite.Sprite):
                 self.rect.x -= dx
                 screen_scroll = -dx  # scroll in opposite direction from the player
 
-        return screen_scroll, level_complete
+        return screen_scroll, level_complete, finished_game
 
     def shoot(self):
         if self.shoot_cooldown == 0 and self.ammo > 0:  # if i have at least one bullet that i can shoot with
@@ -399,7 +405,7 @@ class World:
                     elif 9 <= tile <= 10:
                         water = Decoration(image, x * TILE_SIZE, y * TILE_SIZE)
                         water_group.add(water)
-                    elif 11 <= tile <= 14:
+                    elif 11 <= tile <= 14 and tile != 12:
                         decoration = Decoration(image, x * TILE_SIZE, y * TILE_SIZE)
                         decoration_group.add(decoration)
                     elif tile == 15:  # create player
@@ -420,6 +426,10 @@ class World:
                     elif tile == 20:  # create exit
                         exit = Decoration(image, x * TILE_SIZE, y * TILE_SIZE)
                         exit_group.add(exit)
+                    elif tile == 12:  # create finish
+                        finish = Decoration(image, x * TILE_SIZE, y * TILE_SIZE)
+                        finish_group.add(finish)
+
 
         return player, health_bar
 
@@ -660,9 +670,11 @@ intro_fade = ScreenFade(1, BLACK, 4)
 death_fade = ScreenFade(2, BLACK, 4)
 
 # create buttons
-start_button = StartMenu(SCREEN_WIDTH // 2 - 575, SCREEN_HEIGHT // 2 - 319, start_image, 1.06)
+start_menu = StartMenu(SCREEN_WIDTH // 2 - 575, SCREEN_HEIGHT // 2 - 319, start_image, 1.06)
 # exit_button = button.Button(SCREEN_WIDTH // 2 - 110, SCREEN_HEIGHT // 2 + 50, exit_image, 1)
-restart_button = StartMenu(SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2 - 200, restart_image, 1)
+restart_menu = StartMenu(SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2 - 200, restart_image, 1)
+finish_menu = StartMenu(SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2 - 200, win_image, 1)
+
 
 # create sprite groups
 enemy_group = pygame.sprite.Group()
@@ -673,6 +685,7 @@ item_box_group = pygame.sprite.Group()
 decoration_group = pygame.sprite.Group()
 water_group = pygame.sprite.Group()
 exit_group = pygame.sprite.Group()
+finish_group = pygame.sprite.Group()
 
 # create empty tile list
 world_data = []
@@ -700,7 +713,7 @@ while run:
         screen.fill(BG)
         # add buttons
         # if start_button.draw(screen):
-        start_button.draw(screen)
+        start_menu.draw(screen)
         if start:
             start_game = True
             start_intro = True
@@ -740,6 +753,7 @@ while run:
         decoration_group.update()
         water_group.update()
         exit_group.update()
+        finish_group.update()
 
         bullet_group.draw(screen)
         grenade_group.draw(screen)
@@ -748,6 +762,7 @@ while run:
         decoration_group.draw(screen)
         water_group.draw(screen)
         exit_group.draw(screen)
+        finish_group.draw(screen)
 
         # show intro
         if start_intro:
@@ -776,7 +791,7 @@ while run:
                 player.update_action(1)  # 1 index for run animation
             else:
                 player.update_action(0)  # 0 is for idle
-            screen_scroll, level_complete = player.move(moving_left, moving_right)
+            screen_scroll, level_complete, finished_game = player.move(moving_left, moving_right)
             # print(level_complete)
             background_scroll -= screen_scroll  # to scroll background too
             # check if player has completed the level
@@ -794,11 +809,13 @@ while run:
                                 world_data[x][y] = int(tile)
                     world = World()
                     player, health_bar = world.process_data(world_data)
-
+            elif finished_game:
+                finish_menu.draw(screen)
+                run = False
         else:
             screen_scroll = 0
             if death_fade.fade():
-                restart_button.draw(screen)
+                restart_menu.draw(screen)
                 if restart:
                     death_fade.fade_counter = 0
                     start_intro = True
