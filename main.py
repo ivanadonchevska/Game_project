@@ -36,6 +36,7 @@ start_intro = False
 
 restart = False
 start = False
+paused = False
 
 # define player action variables
 moving_left = False
@@ -69,6 +70,7 @@ pine2_image = pygame.image.load("Images/Background/pine2.png").convert_alpha()
 mountain_image = pygame.image.load("Images/Background/mountain.png").convert_alpha()
 sky_image = pygame.image.load("Images/Background/sky_cloud.png").convert_alpha()
 level2_image = pygame.image.load("Images/Background/level2_background.png").convert_alpha()
+level3_image = pygame.image.load("Images/Background/level_3.jpg").convert_alpha()
 
 # store tiles in a list
 images_list = []
@@ -102,18 +104,22 @@ def draw_background():
     screen.fill(BG)
     # pygame.draw.line(screen, RED, (0, 300), (SCREEN_WIDTH, 300))
     # to draw images for the background on the screen
-    width = sky_image.get_width()
+    width = 0
     for x in range(5):
-        if level == 2:
+        if level == 1:
             width = level2_image.get_width()
             screen.blit(level2_image, ((x * width) - background_scroll * 0.5, 0))
-        else:
+        elif level == 2:
+            width = sky_image.get_width()
             screen.blit(sky_image, ((x * width) - background_scroll * 0.5, 0))
             screen.blit(mountain_image,
                         ((x * width) - background_scroll * 0.6, SCREEN_HEIGHT - mountain_image.get_height() - 300))
             screen.blit(pine1_image,
                         ((x * width) - background_scroll * 0.7, SCREEN_HEIGHT - pine1_image.get_height() - 150))
             screen.blit(pine2_image, ((x * width) - background_scroll * 0.8, SCREEN_HEIGHT - pine2_image.get_height()))
+        elif level == 2:
+            width = level3_image.get_width()
+            screen.blit(level3_image, ((x * width) - background_scroll * 0.4, 0))
 
 
 # define font
@@ -668,6 +674,8 @@ class ScreenFade:
 # create screen fades
 intro_fade = ScreenFade(1, BLACK, 4)
 death_fade = ScreenFade(2, BLACK, 4)
+finish_fade = ScreenFade(2, BG, 4)
+
 
 # create buttons
 start_menu = StartMenu(SCREEN_WIDTH // 2 - 575, SCREEN_HEIGHT // 2 - 319, start_image, 1.06)
@@ -812,6 +820,8 @@ while run:
             elif finished_game:
                 finish_menu.draw(screen)
                 run = False
+                # do it later
+
         else:
             screen_scroll = 0
             if death_fade.fade():
@@ -867,6 +877,8 @@ while run:
                 grenade_thrown = False
             if event.key == pygame.K_r:
                 restart = False
+            if event.key == pygame.K_s:
+                start = False
 
     pygame.display.update()
 pygame.quit()
