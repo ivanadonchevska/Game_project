@@ -28,8 +28,6 @@ scroll_right = False
 scroll = 0
 scroll_speed = 1
 
-# load images
-sky_img = pygame.image.load('Images/Background/level2_background.png').convert_alpha()
 
 # store tiles in a list
 img_list = []
@@ -69,9 +67,6 @@ def draw_text(text, font, text_col, x, y):
 # create function for drawing background
 def draw_bg():
     screen.fill(GREEN)
-    #width = sky_img.get_width()
-    #for x in range(4):
-     #   screen.blit(sky_img, ((x * width) - scroll * 0.6, 0))
 
 
 # draw grid
@@ -95,6 +90,7 @@ def draw_world():
 # create buttons
 save_button = button.Button(SCREEN_WIDTH // 2, SCREEN_HEIGHT + LOWER_MARGIN - 50, save_img, 1)
 load_button = button.Button(SCREEN_WIDTH // 2 + 200, SCREEN_HEIGHT + LOWER_MARGIN - 50, load_img, 1)
+
 # make a button list
 button_list = []
 button_col = 0

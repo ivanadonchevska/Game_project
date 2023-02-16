@@ -3,7 +3,6 @@ from pygame import mixer
 import os
 import random
 import csv
-# import button
 
 mixer.init()
 pygame.init()
@@ -21,7 +20,6 @@ FPS = 60  # frames per second
 # define game variables
 GRAVITY = 0.75
 SCROLL_THRESH = 200  # distance that the player can get to the edge of the screen before it starts to scroll
-# TILE_SIZE = 40  # pixsel
 ROWS = 16
 COLS = 150
 TILE_SIZE = SCREEN_HEIGHT // ROWS
@@ -36,7 +34,6 @@ start_intro = False
 
 restart = False
 start = False
-paused = False
 
 # define player action variables
 moving_left = False
@@ -56,10 +53,7 @@ shoot_sound.set_volume(0.5)
 grenade_sound = pygame.mixer.Sound("Audio/grenade.wav")
 grenade_sound.set_volume(0.5)
 
-
 # button images
-# start_image = pygame.image.load("Images/start_btn.png").convert_alpha()
-# exit_image = pygame.image.load("Images/exit_btn.png").convert_alpha()
 start_image = pygame.image.load("Images/start_menu.JPG").convert_alpha()
 restart_image = pygame.image.load("Images/restart.jpg").convert_alpha()
 win_image = pygame.image.load("Images/win.jpg").convert_alpha()
@@ -78,6 +72,7 @@ for x in range(TILE_TYPES):
     image = pygame.image.load(f"Images/Tile/{x}.png")
     image = pygame.transform.scale(image, (TILE_SIZE, TILE_SIZE))
     images_list.append(image)
+
 # bullet
 bullet_image = pygame.image.load("Images/Icons/bullet.png").convert_alpha()
 # grenade
@@ -97,12 +92,10 @@ RED = (255, 0, 0)
 WHITE = (255, 255, 255)
 GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
-PINK = (235, 65, 54)
 
 
 def draw_background():
     screen.fill(BG)
-    # pygame.draw.line(screen, RED, (0, 300), (SCREEN_WIDTH, 300))
     # to draw images for the background on the screen
     width = 0
     for x in range(5):
@@ -157,10 +150,9 @@ class StartMenu:
         height = image.get_height()
         self.image = pygame.transform.scale(image, (int(width * scale), int(height * scale)))
         self.rect = self.image.get_rect()
-        self.rect.topleft = (x, y)
+        self.rect.topleft = x, y
 
     def draw(self, surface):
-        action = False
         # draw button
         surface.blit(self.image, (self.rect.x, self.rect.y))
 
@@ -203,7 +195,7 @@ class Solder(pygame.sprite.Sprite):
             # count number of files in the folder
             number_of_frames = len(os.listdir(f"Images/{self.character_type}/{animation}"))
             for i in range(number_of_frames):
-                img = pygame.image.load(f"Images/{self.character_type}/{animation}/{i}.png").convert_alpha()
+                img = pygame.image.load(f"Images/{self.character_type}/{animation}/{i}.png")
                 img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
                 temp_list.append(img)
             self.animation_list.append(temp_list)
@@ -238,7 +230,7 @@ class Solder(pygame.sprite.Sprite):
             self.direction = 1
 
         # jump
-        if self.jump == True and self.in_air == False:
+        if self.jump and not self.in_air:
             self.velocity_y = -11
             self.jump = False
             self.in_air = True
@@ -274,14 +266,14 @@ class Solder(pygame.sprite.Sprite):
         if pygame.sprite.spritecollide(self, water_group, False):
             self.health = 0
         # check for collision with exit
-        level_complete = False
+        level_completed = False
         if pygame.sprite.spritecollide(self, exit_group, False):
-            level_complete = True
+            level_completed = True
 
         # check for collision with win
-        finished_game = False
+        game_finished = False
         if pygame.sprite.spritecollide(self, finish_group, False):
-            finished_game = True
+            game_finished = True
 
         # check if fallen off the map
         if self.rect.bottom > SCREEN_HEIGHT:
@@ -297,12 +289,13 @@ class Solder(pygame.sprite.Sprite):
 
         # update scroll based on player position
         if self.character_type == "Player":
-            if (self.rect.right > SCREEN_WIDTH - SCROLL_THRESH and background_scroll < (world.level_length * TILE_SIZE) - SCREEN_WIDTH) \
+            if (self.rect.right > SCREEN_WIDTH - SCROLL_THRESH and background_scroll < (
+                    world.level_length * TILE_SIZE) - SCREEN_WIDTH) \
                     or (self.rect.left < SCROLL_THRESH and background_scroll > abs(dx)):
                 self.rect.x -= dx
                 screen_scroll = -dx  # scroll in opposite direction from the player
 
-        return screen_scroll, level_complete, finished_game
+        return screen_scroll, level_completed, game_finished
 
     def shoot(self):
         if self.shoot_cooldown == 0 and self.ammo > 0:  # if i have at least one bullet that i can shoot with
@@ -317,7 +310,7 @@ class Solder(pygame.sprite.Sprite):
 
     def ai(self):
         if self.alive and player.alive:
-            if self.idling == False and random.randint(1, 200) == 1:
+            if not self.idling and random.randint(1, 200) == 1:
                 self.update_action(0)
                 self.idling = True
                 self.idling_counter = 50
@@ -328,7 +321,7 @@ class Solder(pygame.sprite.Sprite):
                 # shoot
                 self.shoot()
             else:
-                if self.idling == False:
+                if not self.idling:
                     if self.direction == 1:  # right side
                         ai_moving_right = True
                     else:
@@ -395,6 +388,7 @@ class World:
         self.obstacle_list = []
 
     def process_data(self, data):
+        global player
         self.level_length = len(data[0])
         # iterate through each value in level data file
         #  global player
@@ -435,7 +429,6 @@ class World:
                     elif tile == 12:  # create finish
                         finish = Decoration(image, x * TILE_SIZE, y * TILE_SIZE)
                         finish_group.add(finish)
-
 
         return player, health_bar
 
@@ -500,7 +493,9 @@ class ItemBox(pygame.sprite.Sprite):
                     player.health = player.max_health
                 # print(player.health)
             elif self.item_type == "Ammo":
+                # print(f"player.ammo before: {player.ammo}")
                 player.ammo += 15  # change it
+                # print(f"player.ammo after: {player.ammo}")
             elif self.item_type == "Grenade":
                 player.grenades += 3
             # delete the item box
@@ -583,7 +578,7 @@ class Grenade(pygame.sprite.Sprite):
             if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
                 self.direction *= -1
                 dx = self.direction * self.speed
-                # check for the coliision in y direction
+                # check for the collision in y direction
             if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
                 self.speed = 0  # if not added this grenade keeps sliding
                 # check if below the ground i.e. thrown up
@@ -660,9 +655,11 @@ class ScreenFade:
         if self.direction == 1:  # whole screen fade
             # when press start button
             pygame.draw.rect(screen, self.color, (0 - self.fade_counter, 0, SCREEN_WIDTH // 2, SCREEN_HEIGHT))
-            pygame.draw.rect(screen, self.color, (SCREEN_WIDTH // 2 + self.fade_counter, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
+            pygame.draw.rect(screen, self.color,
+                             (SCREEN_WIDTH // 2 + self.fade_counter, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
             pygame.draw.rect(screen, self.color, (0, 0 - self.fade_counter, SCREEN_WIDTH, SCREEN_HEIGHT // 2))
-            pygame.draw.rect(screen, self.color, (0, SCREEN_HEIGHT // 2 + self.fade_counter, SCREEN_WIDTH, SCREEN_HEIGHT))
+            pygame.draw.rect(screen, self.color,
+                             (0, SCREEN_HEIGHT // 2 + self.fade_counter, SCREEN_WIDTH, SCREEN_HEIGHT))
         if self.direction == 2:  # vertical screen fade down
             pygame.draw.rect(screen, self.color, (0, 0, SCREEN_WIDTH, 0 + self.fade_counter))
         if self.fade_counter >= SCREEN_WIDTH:
@@ -676,13 +673,11 @@ intro_fade = ScreenFade(1, BLACK, 4)
 death_fade = ScreenFade(2, BLACK, 4)
 finish_fade = ScreenFade(2, BG, 4)
 
-
 # create buttons
 start_menu = StartMenu(SCREEN_WIDTH // 2 - 575, SCREEN_HEIGHT // 2 - 319, start_image, 1.06)
 # exit_button = button.Button(SCREEN_WIDTH // 2 - 110, SCREEN_HEIGHT // 2 + 50, exit_image, 1)
 restart_menu = StartMenu(SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2 - 200, restart_image, 1)
 finish_menu = StartMenu(SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2 - 200, win_image, 1)
-
 
 # create sprite groups
 enemy_group = pygame.sprite.Group()
@@ -710,6 +705,7 @@ with open(f"level{level}_data.csv", newline="") as csvfile:
 # print(world_data)
 world = World()
 player, health_bar = world.process_data(world_data)
+
 
 run = True
 while run:
@@ -784,7 +780,7 @@ while run:
             if shoot:
                 player.shoot()
             # throw grenades
-            elif grenade and grenade_thrown == False and player.grenades > 0:
+            elif grenade and not grenade_thrown and player.grenades > 0:
                 grenade = Grenade(player.rect.centerx + (player.rect.size[0] * 0.5 * player.direction),
                                   player.rect.top, player.direction)
                 grenade_group.add(grenade)
@@ -799,11 +795,11 @@ while run:
                 player.update_action(1)  # 1 index for run animation
             else:
                 player.update_action(0)  # 0 is for idle
-            screen_scroll, level_complete, finished_game = player.move(moving_left, moving_right)
-            # print(level_complete)
+            screen_scroll, level_completed, game_finished = player.move(moving_left, moving_right)
+            # print(level_completed)
             background_scroll -= screen_scroll  # to scroll background too
             # check if player has completed the level
-            if level_complete:
+            if level_completed:
                 start_intro = True
                 level += 1
                 background_scroll = 0
@@ -817,7 +813,7 @@ while run:
                                 world_data[x][y] = int(tile)
                     world = World()
                     player, health_bar = world.process_data(world_data)
-            elif finished_game:
+            elif game_finished:
                 finish_menu.draw(screen)
                 run = False
                 # do it later
