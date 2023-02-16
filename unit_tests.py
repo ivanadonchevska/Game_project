@@ -1,29 +1,36 @@
 import unittest
-import pygame
-
 from main import *
 
 
 class TestPlayer(unittest.TestCase):
+    """Test Player."""
+    def SetUp(self):
+        """SetUp Player instances."""
+        self.player = Solder("Player", 100, 100, 1.65, 5, 5, 5)
+
     def test_player_alive(self):
+        """Test if player is still alive, when has 0 health."""
         player.health = 0
         player.check_alive()
         self.assertFalse(player.alive)
 
     def ammo_shoot(self):
-        self.player = Solder("Player", 100, 100, 1.65, 5, 5, 5)
-        start_ammo = self.player.ammo
+        """Test if number of bullets is decreasing when pressed to shoot."""
+        start_ammo = player.ammo
         player.shoot()
         self.assertEqual(player.ammo, start_ammo - 1)
 
     def grenade_shoot(self):
+        """Test number of grenades is decreasing when pressed to throw."""
         start_grenades = player.grenades
         grenade_thrown = True
         self.assertEqual(player.grenades, start_grenades - 1)
 
 
 class TestCollision(unittest.TestCase):
+    """Test collision with ItemBoxes."""
     def test_collision_with_ammo_box(self):
+        """Test collision with ammo_box and if player.ammo increase when collided."""
         # Create player and ammo box sprites
         self.player = Solder("Player", 100, 100, 1.65, 5, 5, 5)
         current_ammo = self.player.ammo
@@ -50,6 +57,7 @@ class TestCollision(unittest.TestCase):
         self.assertEqual(player.ammo, current_ammo + 15, "Player's ammo not updated correctly")
 
     def test_collision_with_grenade(self):
+        """Test collision with grenade_box and if player.grenades increase when collided."""
         self.player = Solder("Player", 100, 100, 1.65, 5, 5, 5)
         current_grenades = self.player.grenades
         grenade_box = ItemBox("Grenade", 100, 100)
@@ -68,6 +76,8 @@ class TestCollision(unittest.TestCase):
         self.assertEqual(player.grenades, current_grenades + 3, "Player's grenades not updated correctly")
 
     def test_collision_with_health(self):
+        """Test collision with health_box and if player.health increase when collided with them and decrease when
+        collide with bullet. """
         self.player = Solder("Player", 100, 100, 1.65, 5, 5, 5)
         current_health = player.health
         health_box = ItemBox("Health", 100, 100)
@@ -88,30 +98,50 @@ class TestCollision(unittest.TestCase):
             self.assertGreater(player.health, player.health - 25)
             current_health = player.health
 
+    def tearDown(self):
+        """
+        A method that is called after each test method to clean up any resources that were allocated during the test.
+        This method ensures that any temporary files, database connections, or other resources that were used during
+        the test are properly cleaned up, so that subsequent tests can run in a clean environment.
+        """
+        pygame.quit()
+
 
 class TestMovingLeftAndRight(unittest.TestCase):
+    """Test Player's changing direction and moving."""
+
     def setUp(self):
+        """Set up Player instances."""
         self.player = Solder("Player", 0, 0, 1.65, 5, 5, 5)
 
     def test_move_left(self):
+        """Test if position is smaller than starting when moving left."""
         starting_postition = player.rect.x
         player.move(True, False)
         self.assertLess(player.rect.x, starting_postition)
 
     def test_move_right(self):
+        """Test if position is greater than starting when moving right."""
         starting_postition = player.rect.x
         player.move(False, True)
         self.assertGreater(player.rect.x, starting_postition)
 
     def test_move_left_direction(self):
+        """Test if direction is changing to negative when moving left."""
         player.move(True, False)
         self.assertEqual(player.direction, -1)
 
     def test_move_right_direction(self):
+        """Test if direction is changing to positive when moving right."""
         player.move(False, True)
         self.assertEqual(player.direction, 1)
 
     def tearDown(self):
+        """
+        A method that is called after each test method to clean up any resources that were allocated during the test.
+        This method ensures that any temporary files, database connections, or other resources that were used during
+        the test are properly cleaned up, so that subsequent tests can run in a clean environment.
+        """
         pygame.quit()
 
 
