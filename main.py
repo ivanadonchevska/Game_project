@@ -483,7 +483,7 @@ class ItemBox(pygame.sprite.Sprite):
             # check what kind of box it was
             if self.item_type == "Health":
                 # print(player.health)
-                player.health += 25
+                player.health += 15
                 if player.health > player.max_health:
                     player.health = player.max_health
             elif self.item_type == "Ammo":

@@ -58,7 +58,7 @@ class TestCollision(unittest.TestCase):
         # self.player.update()
         self.assertEqual(player.ammo, current_ammo + 10, "Player's ammo not updated correctly")
 
-    def test_collision_with_grenade(self):
+    def test_collision_with_grenade_box(self):
         """Test collision with grenade_box and if player.grenades increase when collided."""
         current_grenades = self.player.grenades
         grenade_box = ItemBox("Grenade", 100, 100)
@@ -75,27 +75,38 @@ class TestCollision(unittest.TestCase):
 
         self.assertEqual(player.grenades, current_grenades + 3, "Player's grenades not updated correctly")
 
-    def test_collision_with_health(self):
-        """Test collision with health_box and if player.health increase when collided with them and decrease when
-        collide with bullet. """
-        current_health = player.health
+    def test_collision_with_health_box(self):
+        """Test collision with health_box."""
+        current_health = self.player.health
         health_box = ItemBox("Health", 100, 100)
 
-        collide_bullet = pygame.sprite.spritecollide(player, bullet_group, False)
-        if collide_bullet:
-            self.assertLess(player.health, current_health)
-            current_health = player.health
+        collided = pygame.sprite.collide_rect(self.player, health_box)
+        self.assertTrue(collided, "Collision with health box not detected")
 
+        if collided:
+            health_box.update()
+            current_health = player.health - 15
+
+        self.assertEqual(player.health, current_health + 15)
+    """
+    # FIX ITT!
+    def test_collision_with_bullet(self):
+        start_health = player.health
+        bullet = Bullet(100, 100, -1)
+        bullet_group.add(bullet)
+        
+        collide = pygame.sprite.spritecollide(player, bullet_group, False)
+        if collide:
+            start_health = 
+        self.assertEqual(player.health, start_health - counter)
+    
+    def test_collision_with_grenade(self):
+        counter = 0
         collide_grenade_bullet = pygame.sprite.spritecollide(player, grenade_group, False)
         if collide_grenade_bullet:
-            self.assertLess(player.health, current_health)
-            current_health = player.health
-
-        # Check if collision occurs
-        collided_with_health_box = pygame.sprite.collide_rect(self.player, health_box)
-        if collided_with_health_box:
-            self.assertGreater(player.health, player.health - 25)
-            current_health = player.health
+            counter += 25
+        self.assertEqual(player.health, player.health - counter)
+    """
 
     def test_collision_with_water(self):
         collide_water = pygame.sprite.spritecollide(player, water_group, False)
@@ -155,6 +166,27 @@ class TestMovingLeftAndRight(unittest.TestCase):
         the test are properly cleaned up, so that subsequent tests can run in a clean environment.
         """
         pygame.quit()
+
+
+class TestEnemy(unittest.TestCase):
+    def detUp(self):
+        self.enemy = Player('Enemy', 100, 100, 1.65, 2, 20, 0)
+    """
+    # FIX ITT!
+    def test_enemy_collision_with_bullet(self):
+        counter = 0
+        collide_with_bullet = pygame.sprite.spritecollide(enemy, bullet_group, False)
+        if collide_with_bullet:
+            counter += 25
+        self.assertEqual(enemy.health, enemy.health - counter)
+
+    def test_enemy_collision_with_grenade(self):
+        counter = 0
+        collide_grenade_bullet = pygame.sprite.spritecollide(enemy, grenade_group, False)
+        if collide_grenade_bullet:
+            counter += 50
+        self.assertEqual(enemy.health, enemy.health - counter)
+    """
 
 
 if __name__ == '__main__':
