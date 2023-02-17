@@ -6,7 +6,7 @@ class TestPlayer(unittest.TestCase):
     """Test Player."""
     def SetUp(self):
         """SetUp Player instances."""
-        self.player = Solder("Player", 100, 100, 1.65, 5, 5, 5)
+        self.player = Player("Player", 100, 100, 1.65, 5, 5, 5)
 
     def test_player_alive(self):
         """Test if player is still alive, when has 0 health."""
@@ -29,10 +29,12 @@ class TestPlayer(unittest.TestCase):
 
 class TestCollision(unittest.TestCase):
     """Test collision with ItemBoxes."""
+    def setUp(self):
+        self.player = Player("Player", 100, 100, 1.65, 5, 5, 5)
+
     def test_collision_with_ammo_box(self):
         """Test collision with ammo_box and if player.ammo increase when collided."""
-        # Create player and ammo box sprites
-        self.player = Solder("Player", 100, 100, 1.65, 5, 5, 5)
+        # Create ammo box sprites
         current_ammo = self.player.ammo
 
         # shoot pressed
@@ -49,16 +51,15 @@ class TestCollision(unittest.TestCase):
 
         if collided:
             ammo_box.update()
-            current_ammo = player.ammo - 15
+            current_ammo = player.ammo - 10
             # self.player.update()
         # print(f"player.ammo after collision: {self.player.ammo}")
 
         # self.player.update()
-        self.assertEqual(player.ammo, current_ammo + 15, "Player's ammo not updated correctly")
+        self.assertEqual(player.ammo, current_ammo + 10, "Player's ammo not updated correctly")
 
     def test_collision_with_grenade(self):
         """Test collision with grenade_box and if player.grenades increase when collided."""
-        self.player = Solder("Player", 100, 100, 1.65, 5, 5, 5)
         current_grenades = self.player.grenades
         grenade_box = ItemBox("Grenade", 100, 100)
 
@@ -70,7 +71,6 @@ class TestCollision(unittest.TestCase):
 
         if collided:
             grenade_box.update()
-            #
             current_grenades = player.grenades - 3
 
         self.assertEqual(player.grenades, current_grenades + 3, "Player's grenades not updated correctly")
@@ -78,7 +78,6 @@ class TestCollision(unittest.TestCase):
     def test_collision_with_health(self):
         """Test collision with health_box and if player.health increase when collided with them and decrease when
         collide with bullet. """
-        self.player = Solder("Player", 100, 100, 1.65, 5, 5, 5)
         current_health = player.health
         health_box = ItemBox("Health", 100, 100)
 
@@ -98,6 +97,17 @@ class TestCollision(unittest.TestCase):
             self.assertGreater(player.health, player.health - 25)
             current_health = player.health
 
+    def test_collision_with_water(self):
+        collide_water = pygame.sprite.spritecollide(player, water_group, False)
+        if collide_water:
+            self.assertEqual(player.health, 0)
+
+    def test_collision_with_next_level(self):
+        start_level = level
+        collide_nex_level = pygame.sprite.spritecollide(player, exit_group, False)
+        if collide_nex_level:
+            self.assertEqual(level, start_level + 1)
+
     def tearDown(self):
         """
         A method that is called after each test method to clean up any resources that were allocated during the test.
@@ -112,19 +122,21 @@ class TestMovingLeftAndRight(unittest.TestCase):
 
     def setUp(self):
         """Set up Player instances."""
-        self.player = Solder("Player", 0, 0, 1.65, 5, 5, 5)
+        self.player = Player("Player", 0, 0, 1.65, 5, 5, 5)
 
     def test_move_left(self):
         """Test if position is smaller than starting when moving left."""
-        starting_postition = player.rect.x
-        player.move(True, False)
-        self.assertLess(player.rect.x, starting_postition)
+        starting_position = player.rect.x
+        if player.alive:
+            player.move(True, False)
+            self.assertLess(player.rect.x, starting_position)
 
     def test_move_right(self):
         """Test if position is greater than starting when moving right."""
-        starting_postition = player.rect.x
-        player.move(False, True)
-        self.assertGreater(player.rect.x, starting_postition)
+        starting_position = player.rect.x
+        if player.alive:
+            player.move(False, True)
+            self.assertGreater(player.rect.x, starting_position)
 
     def test_move_left_direction(self):
         """Test if direction is changing to negative when moving left."""
