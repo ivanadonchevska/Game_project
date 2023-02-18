@@ -54,7 +54,6 @@ grenade_sound.set_volume(0.5)
 # menu images
 start_image = pygame.image.load("Images/start_menu.jpg").convert_alpha()
 restart_image = pygame.image.load("Images/restart.jpg").convert_alpha()
-win_image = pygame.image.load("Images/win.jpg").convert_alpha()
 
 # load images for the background
 pine1_image = pygame.image.load("Images/Background/pine1.png").convert_alpha()
@@ -664,7 +663,6 @@ death_fade = ScreenFade(2, BLACK, 4)
 # create menu icons
 start_menu = StartMenu(SCREEN_WIDTH // 2 - 575, SCREEN_HEIGHT // 2 - 319, start_image, 1.06)
 restart_menu = StartMenu(SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2 - 200, restart_image, 1)
-finish_menu = StartMenu(SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2 - 200, win_image, 1)
 
 # create sprite groups
 enemy_group = pygame.sprite.Group()
@@ -791,9 +789,7 @@ while run:
                     world = World()
                     player, health_bar = world.process_data(world_data)
             elif game_finished:
-                finish_menu.draw(screen)
                 run = False
-                # do it later
 
         else:
             screen_scroll = 0
